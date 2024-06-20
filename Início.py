@@ -8,7 +8,7 @@ import pandas as pd
 st.set_page_config(
     page_title="XLSX para CSV",
     page_icon="✍️",
-    layout='wide'
+    layout='wide',
 )
 
 
@@ -17,6 +17,7 @@ st.markdown(
 ## Conversor **:violet[(XLSX para CSV)]**
 '''
 )
+
 
 uploader()
 select_dataframes()
@@ -37,25 +38,46 @@ if has_columns and has_intersection:
             continue
         df = pd.merge(df, dataframe, on=intersection)
 
-    cols = [col for cols in columns.values() for col in cols]
+    for col in df.columns:
+        if col.endswith('_x') or col.endswith('_y'):
+            base_col = col[:-2]  # Remove o sufixo '_x' ou '_y'
+            if base_col in df.columns:
+                df[base_col] = df[base_col].combine_first(df[col])
+                df.drop(columns=[col], inplace=True)
+            else:
+                df.rename(columns={col: base_col}, inplace=True)
 
-    inter_df: pd.DataFrame = df[[intersection, *cols]]
+    cols = set(col for cols in columns.values() for col in cols)
+
+    inter_df: pd.DataFrame = df[[intersection, *cols]].copy()
 
     for col in inter_df.select_dtypes(include=['datetime64[ns]', 'datetime']):
         inter_df[col] = inter_df[col].dt.strftime('%d/%m/%Y')
 
     search = st.text_input(
-        label='',
-        placeholder="Pesquise aqui",
+        label='Pesquise aqui',
+        placeholder="Separe com espaços caso queria mais deu uma busca!",
     )
 
-    condition: Callable[[pd.Series], pd.Series] = lambda row: row.astype(str).str.contains(search, case=False).any()
+    inter_df = inter_df.dropna(subset=[intersection])
+    inter_df = inter_df[inter_df[intersection].astype(str).str.strip() != '']
 
-    contains_search_string = inter_df.apply(condition, axis=1)
-
-    final_df = inter_df
+    final_df = inter_df.copy()
     if search:
-        final_df = inter_df[contains_search_string]
+        splitted_search = search.split(" ")
+
+        def condition(word):
+            return inter_df.apply(lambda row: row.astype(str).str.contains(word, case=False).any(), axis=1)
+
+        conditions = [condition(word) for word in splitted_search]
+
+        combined_condition = conditions[0]
+        for cond in conditions[1:]:
+            combined_condition &= cond
+
+        final_df = inter_df[combined_condition]
+
+    
 
     event = st.dataframe(
         data=final_df,
@@ -78,5 +100,6 @@ if has_columns and has_intersection:
         )
 
         if is_downloaded:
+            # st.balloons()
             st.session_state.clear()
             st.rerun()

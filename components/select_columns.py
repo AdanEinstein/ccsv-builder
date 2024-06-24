@@ -8,14 +8,13 @@ def select_columns():
         dataframes: list[pd.DataFrame] = st.session_state['dataframes']
         sheets: list[int | str] = st.session_state['sheets']
         st.divider()
-        with st.form("columns_settings"):
+        with st.form("settings_columns"):
             st.markdown(
                 body='''
                     ##### Colunas:
                     '''
             )
 
-            columns: dict[str, list[str]] = {}
             intersection_columns = set()
             for dataframe in dataframes:
                 if len(intersection_columns) == 0:
@@ -31,25 +30,24 @@ def select_columns():
             )
 
             for i, dataframe in enumerate(dataframes):
-                columns[sheets[i]] = st.multiselect(
+                st.multiselect(
                     label=f"Colunas da planilha ({sheets[i]})",
                     placeholder="Selecione quais colunas serão adicionadas no CSV final",
                     options=[
                         col for col in dataframe.columns if col != intersection],
+                    key=f'columns_{sheets[i]}'
                 )
 
             submitted_columns = st.form_submit_button("Confirmar")
 
             if submitted_columns:
-                for sheet, cols in columns.items():
-                    if len(cols) == 0:
-                        st.error(
-                            f"Nenhuma coluna da planilha ({sheet}) foi selecionada")
-                        st.stop()
+                has_columns = all([bool(len(v)) for k, v in st.session_state.items() if 'columns_' in k])
+                if not has_columns:
+                    st.error(
+                        f"Não foi possível selecionar as colunas, Tente novamente")
+                    st.stop()
 
                 st.toast(
                     body='Colunas selecionadas!',
                     icon='✅'
                 )
-
-                st.session_state['columns'] = columns

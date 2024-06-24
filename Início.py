@@ -22,13 +22,12 @@ st.markdown(
 uploader()
 select_dataframes()
 select_columns()
-
-has_columns = 'columns' in st.session_state
+has_columns = all([bool(len(v)) for k, v in st.session_state.items() if 'columns_' in k])
 has_intersection = 'intersection' in st.session_state
 
 if has_columns and has_intersection:
     dataframes: list[pd.DataFrame] = st.session_state.dataframes
-    columns: dict[str, list[str]] = st.session_state.columns
+    columns: dict[str, list[str]] = {k.replace('columns_', ''): v for k, v in st.session_state.items() if 'columns_' in k}
     intersection: str = st.session_state.intersection
 
     df = None

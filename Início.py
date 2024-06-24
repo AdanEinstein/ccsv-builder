@@ -49,8 +49,16 @@ if has_columns and has_intersection:
     cols = set(col for cols in columns.values() for col in cols)
     inter_df: pd.DataFrame = df[[intersection, *cols]].copy()
 
+    def to_integer_if_possible(x):
+        if isinstance(x, float) and x.is_integer():
+            return int(x)
+        return x
+
     for col in inter_df.select_dtypes(include=['datetime64[ns]', 'datetime']):
         inter_df[col] = inter_df[col].dt.strftime('%d/%m/%Y')
+
+    for col in inter_df.select_dtypes(include=['float64', 'int64']).columns:
+        inter_df[col] = inter_df[col].apply(to_integer_if_possible)
 
     search = st.text_input(
         label='Pesquise aqui',

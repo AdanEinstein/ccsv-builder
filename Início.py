@@ -47,7 +47,6 @@ if has_columns and has_intersection:
                 df.rename(columns={col: base_col}, inplace=True)
 
     cols = set(col for cols in columns.values() for col in cols)
-
     inter_df: pd.DataFrame = df[[intersection, *cols]].copy()
 
     for col in inter_df.select_dtypes(include=['datetime64[ns]', 'datetime']):
@@ -76,9 +75,8 @@ if has_columns and has_intersection:
 
         final_df = inter_df[combined_condition]
 
-    
-
     event = st.dataframe(
+        column_order=(intersection, *(col for sheet in st.session_state.get('sheets') for col in st.session_state[f'columns_{sheet}'])),
         data=final_df,
         hide_index=True,
         use_container_width=True,

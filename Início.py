@@ -75,8 +75,8 @@ if has_columns and has_intersection:
 
         final_df = inter_df[combined_condition]
 
+    final_df = final_df[[intersection, *(col for sheet in st.session_state.get('sheets') for col in st.session_state[f'columns_{sheet}'])]]
     event = st.dataframe(
-        column_order=(intersection, *(col for sheet in st.session_state.get('sheets') for col in st.session_state[f'columns_{sheet}'])),
         data=final_df,
         hide_index=True,
         use_container_width=True,

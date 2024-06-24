@@ -1,4 +1,3 @@
-from typing import Callable
 from components.select_columns import select_columns
 from components.select_dataframes import select_dataframes
 from components.uploader import convert_df, uploader

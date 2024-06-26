@@ -1,6 +1,7 @@
 from components.select_columns import select_columns
 from components.select_dataframes import select_dataframes
 from components.uploader import convert_df, uploader
+from utils import filter_word_in_content, replace_datetime
 import streamlit as st
 import pandas as pd
 
@@ -21,12 +22,14 @@ st.markdown(
 uploader()
 select_dataframes()
 select_columns()
-has_columns = all([bool(len(v)) for k, v in st.session_state.items() if 'columns_' in k])
+has_columns = all([bool(len(v))
+                  for k, v in st.session_state.items() if 'columns_' in k])
 has_intersection = 'intersection' in st.session_state
 
 if has_columns and has_intersection:
     dataframes: list[pd.DataFrame] = st.session_state.dataframes
-    columns: dict[str, list[str]] = {k.replace('columns_', ''): v for k, v in st.session_state.items() if 'columns_' in k}
+    columns: dict[str, list[str]] = {k.replace(
+        'columns_', ''): v for k, v in st.session_state.items() if 'columns_' in k}
     intersection: str = st.session_state.intersection
 
     df = None
@@ -48,16 +51,8 @@ if has_columns and has_intersection:
     cols = set(col for cols in columns.values() for col in cols)
     inter_df: pd.DataFrame = df[[intersection, *cols]].copy()
 
-    def to_integer_if_possible(x):
-        if isinstance(x, float) and x.is_integer():
-            return int(x)
-        return x
-
-    for col in inter_df.select_dtypes(include=['datetime64[ns]', 'datetime']):
-        inter_df[col] = inter_df[col].dt.strftime('%d/%m/%Y')
-
-    for col in inter_df.select_dtypes(include=['float64', 'int64']).columns:
-        inter_df[col] = inter_df[col].apply(to_integer_if_possible)
+    for col in inter_df.select_dtypes(include=['object']):
+        inter_df[col] = inter_df[col].apply(replace_datetime)
 
     search = st.text_input(
         label='Pesquise aqui',
@@ -71,10 +66,7 @@ if has_columns and has_intersection:
     if search:
         splitted_search = search.split("  ")
 
-        def condition(word):
-            return inter_df.apply(lambda row: row.astype(str).str.contains(word, case=False).any(), axis=1)
-
-        conditions = [condition(word) for word in splitted_search]
+        conditions = [filter_word_in_content(word, inter_df, case=False) for word in splitted_search]
 
         combined_condition = conditions[0]
         for cond in conditions[1:]:
@@ -83,7 +75,7 @@ if has_columns and has_intersection:
         final_df = inter_df[combined_condition]
 
     col1, col2 = st.columns(2)
-    
+
     with col1:
         replace = st.text_input(
             label="Substituir",
@@ -95,7 +87,6 @@ if has_columns and has_intersection:
             placeholder='Separe com dois espaços caso queria mais de uma correspondência!',
         )
 
-    
     if replace and to:
         splitted_replace = replace.split("  ")
         splitted_to = to.split("  ")
@@ -104,15 +95,13 @@ if has_columns and has_intersection:
 
             for r, t in zip(splitted_replace, splitted_to):
 
-                def condition(word):
-                    return final_df.apply(lambda row: row.astype(str).str.contains(word).any(), axis=1)
+                if filter_word_in_content(r, final_df).any():
+                    final_df = final_df.replace(
+                        to_replace=r, value=t, regex=True)
 
+    final_df = final_df[[intersection, *(col for sheet in st.session_state.get(
+        'sheets') for col in st.session_state[f'columns_{sheet}'])]]
 
-                if condition(r).any():
-                    final_df = final_df.replace(to_replace=r, value=t, regex=True)
-
-    final_df = final_df[[intersection, *(col for sheet in st.session_state.get('sheets') for col in st.session_state[f'columns_{sheet}'])]]
-   
     event = st.dataframe(
         data=final_df,
         hide_index=True,

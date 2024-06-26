@@ -61,7 +61,7 @@ if has_columns and has_intersection:
 
     search = st.text_input(
         label='Pesquise aqui',
-        placeholder="Separe com espaços caso queria mais deu uma busca!",
+        placeholder="Separe com dois espaços caso queria mais de uma busca!",
     )
 
     inter_df = inter_df.dropna(subset=[intersection])
@@ -69,7 +69,7 @@ if has_columns and has_intersection:
 
     final_df = inter_df.copy()
     if search:
-        splitted_search = search.split(" ")
+        splitted_search = search.split("  ")
 
         def condition(word):
             return inter_df.apply(lambda row: row.astype(str).str.contains(word, case=False).any(), axis=1)
@@ -82,7 +82,37 @@ if has_columns and has_intersection:
 
         final_df = inter_df[combined_condition]
 
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        replace = st.text_input(
+            label="Substituir",
+            placeholder='Separe com dois espaços caso queria mais de uma correspondência!',
+        )
+    with col2:
+        to = st.text_input(
+            label="Para",
+            placeholder='Separe com dois espaços caso queria mais de uma correspondência!',
+        )
+
+    
+    if replace and to:
+        splitted_replace = replace.split("  ")
+        splitted_to = to.split("  ")
+
+        if len(splitted_replace) == len(splitted_to):
+
+            for r, t in zip(splitted_replace, splitted_to):
+
+                def condition(word):
+                    return final_df.apply(lambda row: row.astype(str).str.contains(word).any(), axis=1)
+
+
+                if condition(r).any():
+                    final_df = final_df.replace(to_replace=r, value=t, regex=True)
+
     final_df = final_df[[intersection, *(col for sheet in st.session_state.get('sheets') for col in st.session_state[f'columns_{sheet}'])]]
+   
     event = st.dataframe(
         data=final_df,
         hide_index=True,

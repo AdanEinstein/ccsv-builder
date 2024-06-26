@@ -25,7 +25,7 @@ def select_dataframes():
                     st.error("Nenhuma planilha foi selecionada")
                     st.stop()
                 
-                dataframes = [pd.read_excel(xlsx, sheet_name=sheet) for sheet in sheets]
+                dataframes = [pd.read_excel(xlsx, sheet_name=sheet, dtype=str) for sheet in sheets]
 
                 st.toast(
                     body='Planilhas selecionadas!',

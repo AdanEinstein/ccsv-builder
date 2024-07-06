@@ -2,14 +2,15 @@ import streamlit as st
 
 st.set_page_config(
     page_title="Sobre",
-    page_icon="⚙️"
+    page_icon="⚙️",
+    layout="wide"
 )
 
 with st.container(border=True):
     st.markdown(
         body=f'''
-## :violet[Objetivo]
-> **Transformar qualquer excel num CSV**
+# :violet[Objetivo]
+> #### **Transformar qualquer excel num CSV**
 
 '''
     )
